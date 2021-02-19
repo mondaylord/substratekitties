@@ -5,7 +5,7 @@
   "author": "Parity Technologies <admin@parity.io>",
   "license": "Unlicense",
   "dependencies": {
-    "@polkadot/api": "^0.96.1",
+    "@polkadot/api": "^2.10.1",
     "@polkadot/extension-dapp": "^0.13.1",
     "@polkadot/keyring": "^1.6.1",
     "@polkadot/react-identicon": "^0.46.1",
@@ -30,7 +30,7 @@
     "gh-pages": "^2.1.1"
   },
   "scripts": {
-    "start": "PORT=8000 react-scripts start",
+    "start": "PORT=8090 react-scripts start",
     "build": "react-scripts build",
     "test": "CI=true react-scripts test --env=jsdom",
     "eject": "react-scripts eject",

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Input, Form, Grid } from 'semantic-ui-react';
+import { Form, Grid } from 'semantic-ui-react';
 
 import { useSubstrate } from './substrate-lib';
 import KittyCards from './KittyCard';
@@ -11,37 +11,45 @@ import { TxButton } from './substrate-lib/components';
 export default function SubstrateKitties (props) {
   const { api } = useSubstrate();
   const [status, setStatus] = useState('');
-  const [parents, setParents] = useState({});
-
-  const [kittiesCount, setKittiesCount] = useState(0);
-  const [allKitties, setAllKitties] = useState([]);
-
-  // double check this function
-  const onChange = (_, input) =>
-    setParents(prev => ({ ...prev, [input.state]: input.value }));
+  const [allKittiesCount, setAllKittiesCount] = useState(0);
+  const [allKittiesArray, setAllKittiesArray] = useState([]);
 
   useEffect(() => {
     let unsubKittyCnt = null;
-    const rpc = api.query.substratekitties;
+    const rpc = api.query.kittyStorage;
 
     const fetchKitties = async () => {
-      unsubKittyCnt = await rpc.kittiesCount(async kittyCnt => {
+      unsubKittyCnt = await rpc.allKittiesCount(async kittyCnt => {
         kittyCnt = kittyCnt.toNumber();
-        setKittiesCount(kittyCnt);
+        setAllKittiesCount(kittyCnt);
+        const allKitties = [];
 
         // Retrieve all kitties, owners, and its price
-        const kittyRange = Array.from(Array(kittyCnt).keys());
-        const [dnas, kittyOwners, kittyPrices] = await Promise.all([
-          rpc.kitties.multi(kittyRange),
-          rpc.kittyOwners.multi(kittyRange),
-          rpc.kittyPrices.multi(kittyRange)
-        ]);
-        const kitties = kittyRange.map(i => ({
-          dna: dnas[i].unwrapOr(null),
-          owner: kittyOwners[i].unwrapOr(null),
-          price: kittyPrices[i].unwrapOr(null)
-        }));
-        setAllKitties(kitties);
+        // const kittyRange = Array.from(Array(kittyCnt).keys());
+        for (let i = 0; i < kittyCnt; i++) {
+          const kittyId = await rpc.allKittiesArray(i).then(a => a.toJSON());
+          const [dnas, kittyOwner] = await Promise.all([
+            rpc.kitties(kittyId).then(a => a.toJSON()),
+            rpc.kittyOwner(kittyId).then(a => a.toJSON())
+          ]);
+          const kitties = {
+            dna: dnas,
+            owner: kittyOwner,
+            price: 0
+          };
+          allKitties.push(kitties);
+        }
+        // const [dnas, kittyOwner, kittyPrice] = await Promise.all([
+        //   rpc.kitties.multi(kittyRange),
+        //   rpc.kittyOwner.multi(kittyRange),
+        //   rpc.kittyOwner.multi(kittyRange)
+        // ]);
+        // const kitties = kittyRange.map(i => ({
+        //   dna: dnas[i].unwrapOr(null),
+        //   owner: kittyOwner[i].unwrapOr(null),
+        //   price: kittyPrice[i].unwrapOr(null)
+        // }));
+        setAllKittiesArray(allKitties);
       });
     };
 
@@ -51,14 +59,14 @@ export default function SubstrateKitties (props) {
       // clean up function
       unsubKittyCnt && unsubKittyCnt();
     };
-  }, [kittiesCount, api.query.substratekitties]);
+  }, [allKittiesCount, api.query.kittyStorage]);
 
   return (
     <Grid.Column>
       <h1>Substrate Kitties</h1>
-      <h3>Number of Kitties Purring: {kittiesCount.toString()}</h3>
-      {allKitties.length > 0 ? (
-        <KittyCards kitties={allKitties} />
+      <h3>Number of Kitties Purring: {allKittiesCount.toString()}</h3>
+      {allKittiesArray.length > 0 ? (
+        <KittyCards kitties={allKittiesArray} />
       ) : (
         'No Kitty Found.'
       )}
@@ -67,52 +75,14 @@ export default function SubstrateKitties (props) {
         <Grid.Row>
           <Grid.Column>
             <Form>
-              <h3>Create Kitty</h3>
+              <h3>Create 10 Kitties</h3>
               <Form.Field>
                 <TxButton
                   accountPair={props.accountPair}
-                  label={'Create Kitty'}
+                  label={'Create 10 Kitties'}
                   setStatus={setStatus}
                   type='TRANSACTION'
-                  attrs={{ params: [], tx: api.tx.substratekitties.create }}
-                />
-              </Form.Field>
-            </Form>
-          </Grid.Column>
-          <Grid.Column>
-            <Form>
-              <h3>Breed Kitty</h3>
-              <Form.Field>
-                <Input
-                  fluid
-                  label='Parent 1'
-                  type='number'
-                  placeholder='Kitty Index'
-                  state='parent-1'
-                  onChange={onChange}
-                />
-              </Form.Field>
-              <Form.Field>
-                <Input
-                  fluid
-                  label='Parent 2'
-                  type='number'
-                  placeholder='Kitty Index'
-                  state='parent-2'
-                  onChange={onChange}
-                />
-              </Form.Field>
-              <Form.Field>
-                <TxButton
-                  accountPair={props.accountPair}
-                  label={'Breed Kitty'}
-                  setStatus={setStatus}
-                  type='TRANSACTION'
-                  disabled={!parents['parent-1'] || !parents['parent-2']}
-                  attrs={{
-                    params: [parents['parent-1'], parents['parent-2']],
-                    tx: api.tx.substratekitties.breed
-                  }}
+                  attrs={{ params: [], tx: api.tx.kittyStorage.createKitties }}
                 />
               </Form.Field>
             </Form>
